@@ -6,9 +6,9 @@ interface BuddyListProps {
 
 const BuddyList: React.FC<BuddyListProps> = ({ onChatStart }) => {
   const buddies = [
-    { name: 'JohnDoe123', status: 'online' },
-    { name: 'CoolKid95', status: 'away' },
-    { name: 'WebSurfer2000', status: 'offline' },
+    { name: 'JohnDoe123', status: 'online', awayMessage: null },
+    { name: 'CoolKid95', status: 'away', awayMessage: 'BRB - Dinner time!' },
+    { name: 'WebSurfer2000', status: 'offline', awayMessage: null },
   ];
 
   return (
@@ -23,6 +23,7 @@ const BuddyList: React.FC<BuddyListProps> = ({ onChatStart }) => {
             key={buddy.name}
             className="window-95-btn text-left text-sm p-1 flex items-center gap-2"
             onClick={onChatStart}
+            title={buddy.awayMessage || undefined}
           >
             <div
               className={`w-2 h-2 rounded-full ${
@@ -33,7 +34,12 @@ const BuddyList: React.FC<BuddyListProps> = ({ onChatStart }) => {
                   : 'bg-red-500'
               }`}
             />
-            {buddy.name}
+            <div className="flex flex-col">
+              <span>{buddy.name}</span>
+              {buddy.awayMessage && (
+                <span className="text-xs text-win95-darkgray">{buddy.awayMessage}</span>
+              )}
+            </div>
           </button>
         ))}
       </div>
