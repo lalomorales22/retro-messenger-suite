@@ -18,7 +18,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     { 
-      text: `Welcome to ${roomName}!`,
+      text: `Welcome to ${roomName}! ${isPrivate ? '(Private Room)' : ''}`,
       sender: "System",
       timestamp: new Date(),
       isSystem: true
@@ -26,6 +26,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   ]);
   const [newMessage, setNewMessage] = useState("");
   const [userCount, setUserCount] = useState(1);
+  const [inviteUser, setInviteUser] = useState("");
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +43,33 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inviteUser.trim()) {
+      setMessages([
+        ...messages,
+        {
+          text: `Invitation sent to ${inviteUser}`,
+          sender: "System",
+          timestamp: new Date(),
+          isSystem: true
+        }
+      ]);
+      setInviteUser("");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 h-80">
       <div className="window-95-btn p-2 mb-2 flex justify-between items-center">
-        <span className="text-sm font-bold">{roomName}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold">{roomName}</span>
+          {isPrivate && (
+            <span className="text-xs bg-win95-navy text-white px-1 rounded">
+              Private
+            </span>
+          )}
+        </div>
         <span className="text-sm text-win95-darkgray">
           {userCount} {userCount === 1 ? 'user' : 'users'} online
         </span>
@@ -67,6 +91,21 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           </div>
         ))}
       </div>
+
+      {isPrivate && (
+        <form onSubmit={handleInvite} className="flex gap-2">
+          <input
+            type="text"
+            value={inviteUser}
+            onChange={(e) => setInviteUser(e.target.value)}
+            className="window-95-btn text-sm p-1 flex-grow"
+            placeholder="Invite user..."
+          />
+          <button type="submit" className="window-95-btn text-sm">
+            Invite
+          </button>
+        </form>
+      )}
 
       <form onSubmit={sendMessage} className="flex gap-2">
         <input

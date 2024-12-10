@@ -4,6 +4,7 @@ interface WindowState {
   buddyList: boolean;
   chat: boolean;
   chatroom: boolean;
+  privateRoom: boolean;
 }
 
 interface TaskbarProps {
@@ -42,6 +43,15 @@ const Taskbar: React.FC<TaskbarProps> = ({ windows, onWindowClick }) => {
           onClick={() => onWindowClick('chatroom')}
         >
           <span className="text-sm">Chat Room</span>
+        </button>
+      )}
+
+      {windows.privateRoom && (
+        <button
+          className="window-95-btn h-8 flex-grow flex items-center"
+          onClick={() => onWindowClick('privateRoom')}
+        >
+          <span className="text-sm">Private Room</span>
         </button>
       )}
 

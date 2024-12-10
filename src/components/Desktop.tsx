@@ -11,10 +11,12 @@ const Desktop = () => {
     buddyList: boolean;
     chat: boolean;
     chatroom: boolean;
+    privateRoom: boolean;
   }>({
     buddyList: true,
     chat: false,
     chatroom: false,
+    privateRoom: false,
   });
 
   const toggleWindow = (window: keyof typeof windows) => {
@@ -36,6 +38,11 @@ const Desktop = () => {
           icon="chat"
           label="Chat Rooms"
           onClick={() => toggleWindow('chatroom')}
+        />
+        <DesktopIcon
+          icon="chat"
+          label="Private Room"
+          onClick={() => toggleWindow('privateRoom')}
         />
       </div>
 
@@ -66,6 +73,16 @@ const Desktop = () => {
           initialPosition={{ x: 400, y: 60 }}
         >
           <ChatRoom />
+        </Window>
+      )}
+
+      {windows.privateRoom && (
+        <Window
+          title="Private Room"
+          onClose={() => toggleWindow('privateRoom')}
+          initialPosition={{ x: 450, y: 80 }}
+        >
+          <ChatRoom roomName="Private Chat" isPrivate={true} />
         </Window>
       )}
 
