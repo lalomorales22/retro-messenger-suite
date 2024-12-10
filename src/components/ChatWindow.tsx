@@ -1,32 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
 import EmoticonPicker from './EmoticonPicker';
 import FileTransfer from './FileTransfer';
+import { useToast } from "@/components/ui/use-toast";
 
 interface Message {
-  text: string;
-  sender: string;
-  timestamp: Date;
+  id: string;
+  content: string;
+  sender_id: string;
+  created_at: string;
+  is_system_message?: boolean;
 }
 
 const ChatWindow: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { text: "Hey! How are you?", sender: "JohnDoe123", timestamp: new Date() },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [showFileTransfer, setShowFileTransfer] = useState(false);
   const [awayMessage, setAwayMessage] = useState("");
   const [isAway, setIsAway] = useState(false);
+  const { toast } = useToast();
 
-  const sendMessage = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        toast({
+          title: "Error fetching messages",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setMessages(data || []);
+    };
+
+    fetchMessages();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          setMessages(prev => [...prev, payload.new as Message]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
+
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      setMessages([
-        ...messages,
-        { text: newMessage, sender: "You", timestamp: new Date() },
+    if (!newMessage.trim()) return;
+
+    const { error } = await supabase
+      .from('messages')
+      .insert([
+        {
+          content: newMessage,
+          sender_id: (await supabase.auth.getUser()).data.user?.id,
+        }
       ]);
-      setNewMessage("");
+
+    if (error) {
+      toast({
+        title: "Error sending message",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
     }
+
+    setNewMessage("");
   };
 
   const handleEmoticonSelect = (emoticon: string) => {
@@ -34,30 +93,83 @@ const ChatWindow: React.FC = () => {
     setShowEmoticons(false);
   };
 
-  const handleFileSelect = (file: File) => {
-    setMessages([
-      ...messages,
-      { 
-        text: `[File Sent: ${file.name} (${Math.round(file.size / 1024)} KB)]`,
-        sender: "You",
-        timestamp: new Date()
-      },
-    ]);
+  const handleFileSelect = async (file: File) => {
+    const { error } = await supabase
+      .from('messages')
+      .insert([
+        {
+          content: `[File Sent: ${file.name} (${Math.round(file.size / 1024)} KB)]`,
+          sender_id: (await supabase.auth.getUser()).data.user?.id,
+        }
+      ]);
+
+    if (error) {
+      toast({
+        title: "Error sending file message",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setShowFileTransfer(false);
   };
 
-  const toggleAwayStatus = () => {
+  const toggleAwayStatus = async () => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        status: !isAway ? 'away' : 'online',
+        away_message: !isAway ? awayMessage : null
+      })
+      .eq('id', (await supabase.auth.getUser()).data.user?.id);
+
+    if (error) {
+      toast({
+        title: "Error updating status",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAway(!isAway);
     if (isAway) {
-      setMessages([
-        ...messages,
-        { text: "You are now available", sender: "System", timestamp: new Date() },
-      ]);
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert([
+          {
+            content: "You are now available",
+            sender_id: (await supabase.auth.getUser()).data.user?.id,
+            is_system_message: true
+          }
+        ]);
+
+      if (msgError) {
+        toast({
+          title: "Error sending system message",
+          description: msgError.message,
+          variant: "destructive",
+        });
+      }
     } else if (awayMessage) {
-      setMessages([
-        ...messages,
-        { text: `Away Message: ${awayMessage}`, sender: "System", timestamp: new Date() },
-      ]);
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert([
+          {
+            content: `Away Message: ${awayMessage}`,
+            sender_id: (await supabase.auth.getUser()).data.user?.id,
+            is_system_message: true
+          }
+        ]);
+
+      if (msgError) {
+        toast({
+          title: "Error sending system message",
+          description: msgError.message,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -80,12 +192,14 @@ const ChatWindow: React.FC = () => {
       </div>
 
       <div className="flex-grow window-95-btn p-2 overflow-y-auto">
-        {messages.map((msg, i) => (
-          <div key={i} className="mb-2">
-            <span className="text-win95-navy font-bold text-sm">{msg.sender}: </span>
-            <span className="text-sm">{msg.text}</span>
+        {messages.map((msg) => (
+          <div key={msg.id} className="mb-2">
+            <span className="text-win95-navy font-bold text-sm">
+              {msg.is_system_message ? 'System' : msg.sender_id}: 
+            </span>
+            <span className="text-sm">{msg.content}</span>
             <span className="text-xs text-win95-darkgray ml-2">
-              {msg.timestamp.toLocaleTimeString()}
+              {new Date(msg.created_at).toLocaleTimeString()}
             </span>
           </div>
         ))}
