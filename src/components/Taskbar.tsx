@@ -1,11 +1,14 @@
 import React from 'react';
 
+interface WindowState {
+  buddyList: boolean;
+  chat: boolean;
+  chatroom: boolean;
+}
+
 interface TaskbarProps {
-  windows: {
-    buddyList: boolean;
-    chat: boolean;
-  };
-  onWindowClick: (window: keyof typeof windows) => void;
+  windows: WindowState;
+  onWindowClick: (window: keyof WindowState) => void;
 }
 
 const Taskbar: React.FC<TaskbarProps> = ({ windows, onWindowClick }) => {
@@ -30,6 +33,15 @@ const Taskbar: React.FC<TaskbarProps> = ({ windows, onWindowClick }) => {
           onClick={() => onWindowClick('chat')}
         >
           <span className="text-sm">Instant Message</span>
+        </button>
+      )}
+
+      {windows.chatroom && (
+        <button
+          className="window-95-btn h-8 flex-grow flex items-center"
+          onClick={() => onWindowClick('chatroom')}
+        >
+          <span className="text-sm">Chat Room</span>
         </button>
       )}
 

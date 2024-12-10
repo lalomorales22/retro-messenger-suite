@@ -4,14 +4,17 @@ import Window from './Window';
 import DesktopIcon from './DesktopIcon';
 import BuddyList from './BuddyList';
 import ChatWindow from './ChatWindow';
+import ChatRoom from './ChatRoom';
 
 const Desktop = () => {
   const [windows, setWindows] = useState<{
     buddyList: boolean;
     chat: boolean;
+    chatroom: boolean;
   }>({
     buddyList: true,
     chat: false,
+    chatroom: false,
   });
 
   const toggleWindow = (window: keyof typeof windows) => {
@@ -28,6 +31,11 @@ const Desktop = () => {
           icon="buddy"
           label="Buddy List"
           onClick={() => toggleWindow('buddyList')}
+        />
+        <DesktopIcon
+          icon="chat"
+          label="Chat Rooms"
+          onClick={() => toggleWindow('chatroom')}
         />
       </div>
 
@@ -48,6 +56,16 @@ const Desktop = () => {
           initialPosition={{ x: 300, y: 40 }}
         >
           <ChatWindow />
+        </Window>
+      )}
+
+      {windows.chatroom && (
+        <Window
+          title="Chat Room"
+          onClose={() => toggleWindow('chatroom')}
+          initialPosition={{ x: 400, y: 60 }}
+        >
+          <ChatRoom />
         </Window>
       )}
 
